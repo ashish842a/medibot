@@ -32,9 +32,15 @@ def save_extracted_data_to_file(extracted_data, filename):
         extracted_data (list): List of documents or text data to save.
         filename (str): The path to the file to save the data.
     """
+    # Ensure extracted_data is a list
+    if not isinstance(extracted_data, list):
+        print("Error: extracted_data is not a list.")
+        return
+
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(extracted_data, f, ensure_ascii=False, indent=4)
     print(f"Data saved to {filename}")
+
 
 def load_extracted_data_from_file(filename):
     """
@@ -98,7 +104,23 @@ if __name__ == "__main__":
 
     # Step 1: Load PDF files from the directory
     extracted_data = load_pdf_file(pdf_directory)
+    
+    print("type",type(extracted_data))
+    
+    # Write code to save the first instance in a text file
+    with open('extracted_data_sample_new.txt', 'w', encoding='utf-8') as f:
+        f.write(repr(extracted_data[0])+ "\n\n")  # Writing the first 3 items from extracted_data
+        f.write(repr(extracted_data[1]))  # Writing the first 3 items from extracted_data
 
+    # Write the content of all documents to a text file
+    with open('all_extracted_data.txt', 'w', encoding='utf-8') as f:
+        for document in extracted_data:
+            f.write(document.page_content + "\n\n")  # Write each document's content followed by two newlines
+        print("All documents' content saved successfully.")
+
+        
+    # print("first data type",(extracted_data[0]))
+    
     # Step 2: Save the loaded extracted data to a file for future use
     save_extracted_data_to_file(extracted_data, data_file)
 
@@ -116,6 +138,7 @@ if __name__ == "__main__":
         print(f"Query Embedding Vector: {embedding_vector[:5]}...")  # Display the first 5 dimensions
     else:
         print("No documents found.")
+    
     
     # Step 4: Split the loaded data into chunks
     text_chunks = split_data_into_chunks(extracted_data)
