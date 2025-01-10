@@ -16,6 +16,7 @@ def split_data_into_chunks(extracted_data):
     
     # Convert each dictionary into a Document object
     documents = [Document(page_content=doc["text"]) for doc in extracted_data]
+   
     
     # Split the documents into text chunks
     text_chunks = text_splitter.split_documents(documents)
@@ -31,6 +32,8 @@ if __name__ == "__main__":
     
     # Split the data into chunks
     text_chunks = split_data_into_chunks(extracted_data)
+
+    print("tyep",type(text_chunks))
     
     # Display the text chunks
     for i, chunk in enumerate(text_chunks):

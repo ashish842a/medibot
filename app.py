@@ -5,6 +5,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 import json
 
+from pinecone import Pinecone
+from helper.insert_to_pinecode import upsert_vectors_to_pinecone
+
 # Function to load PDF files
 def load_pdf_file(data):
     """
@@ -44,20 +47,23 @@ def save_extracted_data_to_file(extracted_data, filename):
 
 def load_extracted_data_from_file(filename):
     """
-    Load extracted data from a text file.
+    Load extracted data from a JSON file.
 
     Args:
         filename (str): The path to the file from which to load the data.
 
     Returns:
-        list: Loaded data.
+        list: Loaded data as a list of dictionaries, or None if the file is not found.
     """
     try:
         with open(filename, 'r', encoding='utf-8') as f:
-            extracted_data = json.load(f)
+            extracted_data = json.load(f)  # Load JSON content into a Python list or dictionary
         return extracted_data
     except FileNotFoundError:
         print(f"{filename} not found. Extracting data from PDF.")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON from {filename}: {e}")
         return None
 
 
@@ -85,7 +91,7 @@ def split_data_into_chunks(extracted_data):
         list: A list of text chunks.
     """
     # Initialize the text splitter with a specific chunk size and overlap
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
     
     # Convert each dictionary into a Document object
     documents = [Document(page_content=doc.get("text", "")) for doc in extracted_data]
@@ -99,50 +105,50 @@ def split_data_into_chunks(extracted_data):
 # Main Execution
 if __name__ == "__main__":
     # Filepath for saving and loading extracted data
-    data_file = "extracted_data.json"
-    pdf_directory = r"D:\Project\medical_chatbot-RAG\Data"
-
-    # Step 1: Load PDF files from the directory
-    extracted_data = load_pdf_file(pdf_directory)
+    data_file = "medibook_content.json"
     
-    print("type",type(extracted_data))
+    extracted_data = load_extracted_data_from_file(data_file)
     
-    # Write code to save the first instance in a text file
-    with open('extracted_data_sample_new.txt', 'w', encoding='utf-8') as f:
-        f.write(repr(extracted_data[0])+ "\n\n")  # Writing the first 3 items from extracted_data
-        f.write(repr(extracted_data[1]))  # Writing the first 3 items from extracted_data
-
-    # Write the content of all documents to a text file
-    with open('all_extracted_data.txt', 'w', encoding='utf-8') as f:
-        for document in extracted_data:
-            f.write(document.page_content + "\n\n")  # Write each document's content followed by two newlines
-        print("All documents' content saved successfully.")
-
-        
-    # print("first data type",(extracted_data[0]))
-    
-    # Step 2: Save the loaded extracted data to a file for future use
-    save_extracted_data_to_file(extracted_data, data_file)
-
-    # Step 3: Download and initialize HuggingFace embeddings
-    embeddings = loading_hugging_face_embeddings()
-    
-    # Example usage of embeddings: embedding the first 2 sentences of the first document
-    if extracted_data:
-        first_document = extracted_data[0]
-        print(f"First document content: {first_document.get('text', 'No text found')[:200]}...")  # Print first 200 chars
-        
-        # Embedding query: First 2 sentences from the first document
-        query_text = first_document.get("text", "")[:200]  # Get the first 200 chars (adjust to sentences if needed)
-        embedding_vector = embeddings.embed_query(query_text)
-        print(f"Query Embedding Vector: {embedding_vector[:5]}...")  # Display the first 5 dimensions
-    else:
-        print("No documents found.")
     
     
     # Step 4: Split the loaded data into chunks
     text_chunks = split_data_into_chunks(extracted_data)
     
-    # Display the text chunks
-    for i, chunk in enumerate(text_chunks):
-        print(f"Chunk {i+1}: {chunk.page_content}")  # Access the text using 'page_content'
+    print("text_chunks",len(text_chunks))
+    # print("text_chunks",type(text_chunks))
+    # print("text_chunks",text_chunks[0])
+    
+    # # Extract and convert Document objects into dictionaries
+    # first_chunk_data = {"text": text_chunks[0].page_content}  
+    # second_chunk_data = {"text": text_chunks[1].page_content}
+
+    # # Save first two chunks as JSON
+    # with open('first_chunk.json', 'w', encoding='utf-8') as json_file:
+    #     json.dump(first_chunk_data, json_file, ensure_ascii=False, indent=4)
+    #     json.dump(second_chunk_data, json_file, ensure_ascii=False, indent=4)
+
+    # embeddings = loading_hugging_face_embeddings()
+    
+    # text_chunks_embedded_vector = []
+    # for query in text_chunks[:3]:
+    #     # print("query",query)
+    #     embedding_vector = embeddings.embed_query(query.page_content)
+    #     text_chunks_embedded_vector.append(embedding_vector)
+        
+    # print("len",len(text_chunks_embedded_vector))
+    # print("vectre len",len(text_chunks_embedded_vector[0]))
+        
+    # api_key = "pcsk_2vdwSP_33AMeyjvoa6tPyet9Wve8KcQoSPrxSYz4ixtHxmqj5wzEKsEWJDHz9T1cGGXBM2"
+    # pc = Pinecone(api_key=api_key)
+    # # index = None  # Replace with your actual Pinecone index instance
+    # index = pc.Index("medibot")  
+    # namespace="ns1"
+    # upsert_response = upsert_vectors_to_pinecone(index, text_chunks_embedded_vector, namespace)
+    
+      
+    # print("embedded data",len(text_chunks_embedded_vector))     
+    # print("embedded data1",((text_chunks_embedded_vector[0][0])))     
+    # print("embedded data2",(text_chunks_embedded_vector[1][0]))     
+   
+        
+    

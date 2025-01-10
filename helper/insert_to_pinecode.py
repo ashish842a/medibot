@@ -1,78 +1,58 @@
-import pinecone
+from pinecone import Pinecone
 
-from langchain.vectorstores import Pinecone
-from pinecone.client.models import ServerlessSpec
-
-from langchain.embeddings import HuggingFaceEmbeddings
-
-def download_hugging_face_embeddings():
+def upsert_vectors_to_pinecone(index, vectors, namespace="default"):
     """
-    Initialize and return Hugging Face embeddings.
-
-    Returns:
-        HuggingFaceEmbeddings: Hugging Face embeddings object.
-    """
-    # Initialize the Hugging Face Embeddings model
-    embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
-    return embeddings
-
-
-def upsert_embeddings_to_pinecone(extracted_data, index_name, api_key, environment="us-west1-gcp"):
-    """
-    Embed the text chunks and upsert them into the Pinecone index.
+    Function to upsert vectors into a Pinecone index.
 
     Args:
-        extracted_data (list): List of text data or documents to be embedded and upserted.
-        index_name (str): The name of the Pinecone index to use.
-        api_key (str): The API key for Pinecone.
-        environment (str): The Pinecone environment, default is "us-west1-gcp".
-
-    Returns:
-        None
-    """
-    # Initialize Pinecone client
-    pinecone.init(api_key=api_key, environment=environment)
-
-    # Check if index already exists
-    if index_name not in pinecone.list_indexes():
-        # Define the index specification (example: using serverless)
-        spec = ServerlessSpec(
-            cloud='aws',  # Cloud provider
-            region='us-west-2'  # Cloud region
-        )
+        index (PineconeIndex): Initialized Pinecone index object.
+        vectors (list): List of vectors with "id", "values", and "metadata".
+        namespace (str): Optional namespace for the vectors (default is "default").
         
-        # Create the index with the specified dimension and spec
-        pinecone.create_index(index_name, dimension=1536, spec=spec)  # Ensure the dimension matches the embedding model's output
-        print(f"Index '{index_name}' created successfully.")
-    else:
-        print(f"Index '{index_name}' already exists, skipping creation.")
+    Returns:
+        dict: The response from Pinecone after the upsert operation.
+    """
+    try:
+        # Ensure the vectors are 384-dimensional (you need to replace these with real 384D vectors)
+        for vector,index in vectors:
+            if len(vector[index]) != 384:
+                print(f"Vector {vector['id']} has incorrect dimension: {len(vector[index])}. It should be 384.")
+                return None
+        
+        # Perform the upsert operation
+        response = index.upsert(
+            vectors=vectors,
+            namespace=namespace
+        )
+        print(f"Upsert operation successful. Response: {response}")
+        return response  # Return the response from Pinecone after the upsert
+    except Exception as e:
+        print(f"Error during upsert: {e}")
+        return None
 
-    # Convert the extracted data into documents (assuming it's already in chunks)
-    documents = [{"page_content": doc["text"]} for doc in extracted_data]
-    
-    # Initialize the embedding model (replace with a valid method for Hugging Face embeddings if necessary)
-    embeddings = download_hugging_face_embeddings()  # Replace with valid function or model
-    
-    # Embed and upsert into Pinecone using Pinecone
-    vector_store = Pinecone.from_documents(
-        documents, 
-        embedding=embeddings, 
-        index_name=index_name
-    )
 
-    print(f"Successfully upserted embeddings into the Pinecone index '{index_name}'.")
-
-# Example usage:
+# Example usage
 if __name__ == "__main__":
-    # Example extracted data (replace with your actual extracted data)
-    extracted_data = [
-        {"text": "This is a long text from a PDF file that needs to be split into chunks."},
-        {"text": "Another document with a significant amount of text for splitting."}
+    # Assuming the 'index' has been initialized before
+    api_key = "pcsk_2vdwSP_33AMeyjvoa6tPyet9Wve8KcQoSPrxSYz4ixtHxmqj5wzEKsEWJDHz9T1cGGXBM2"
+    pc = Pinecone(api_key=api_key)
+    # index = None  # Replace with your actual Pinecone index instance
+    index = pc.Index("medibot2")
+
+    # Example vector data to upsert
+    vectors = [
+        {"id": "vec1", "values": [0.1] * 384, "metadata": {"genre": "drama"}},
+        {"id": "vec2", "values": [0.2] * 384, "metadata": {"genre": "action"}},
+        {"id": "vec3", "values": [0.3] * 384, "metadata": {"genre": "drama"}},
+        {"id": "vec4", "values": [0.4] * 384, "metadata": {"genre": "action"}}
     ]
     
-    # Define your Pinecone API key and index name
-    api_key = "pcsk_37Ucqa_9FgQqYi7jzTAt12tAw2DLYDAqTRiJUA4RQ5sS1sP7dV8km2yJVXiJaUR7NHoWKc"
-    index_name = "medibot"
+    namespace = "ns1"  # Specify the namespace
     
-    # Call the function to upsert embeddings into Pinecone
-    upsert_embeddings_to_pinecone(extracted_data, index_name, api_key)
+    # Call the function to upsert vectors
+    upsert_response = upsert_vectors_to_pinecone(index, vectors, namespace)
+    
+    if upsert_response:
+        print("Upsert successful!")
+    else:
+        print("Upsert failed.")
